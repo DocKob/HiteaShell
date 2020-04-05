@@ -114,3 +114,36 @@ function Install-HtModules {
         }
     }
 }
+
+function Set-HtConfigMode {
+    [CmdletBinding(
+        SupportsShouldProcess = $true
+    )]
+    Param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [bool]$ConfigMode
+    )
+
+    if ($ConfigMode -eq $true) {
+        netsh advfirewall set allprofiles state off
+        Enable-WSManCredSSP -Role server
+    }
+    elseif ($ConfigMode -eq $false) {
+        netsh advfirewall set allprofiles state on
+        Disable-WSManCredSSP -Role Server
+    }
+}
+
+function Set-HtAccessibility {
+    [CmdletBinding(
+        SupportsShouldProcess = $true
+    )]
+    Param()
+
+    Enable-PSRemoting -Force
+    winrm quickconfig -q
+    Start-Service WinRM
+    Set-Service WinRM -StartupType Automatic
+
+}

@@ -99,3 +99,148 @@ function Install-HtFeatures {
         } 
     }
 }
+
+Function Get-HtDeviceInfos {
+    [CmdletBinding(
+        SupportsShouldProcess = $true
+    )]
+    param(
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [bool]$Export = $false
+    )
+    DynamicParam {
+        if ($Export -eq $true) {
+            $ageAttribute = New-Object System.Management.Automation.ParameterAttribute
+            $ageAttribute.Mandatory = $true
+            $ageAttribute.HelpMessage = "Provide a folder path to export CSV file: "
+ 
+            $attributeCollection = new-object System.Collections.ObjectModel.Collection[System.Attribute]
+
+            $attributeCollection.Add($ageAttribute)
+ 
+            $ageParam = New-Object System.Management.Automation.RuntimeDefinedParameter('ExportPath', [string], $attributeCollection)
+ 
+            $paramDictionary = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
+            $paramDictionary.Add('ExportPath', $ageParam)
+            return $paramDictionary
+        }
+    }
+
+    Process {
+        $os = Get-WmiObject -class win32_operatingsystem | Select-Object *
+        $pc = Get-WmiObject -Class Win32_ComputerSystem | Select-Object *
+        $pf = Get-CimInstance -Class Win32_PageFileUsage | Select-Object *
+
+        $DeviceInfo = @{ }
+        $DeviceInfo.add("OperatingSystem", $os.name.split("|")[0])
+        $DeviceInfo.add("Version", $os.Version)
+        $DeviceInfo.add("Architecture", $os.OSArchitecture)
+        $DeviceInfo.add("SerialNumber", $os.SerialNumber)
+        $DeviceInfo.add("PsVersion", [string]($PSVersionTable.PSVersion.Major) + "." + [string]($PSVersionTable.PSVersion.Minor))
+
+        $DeviceInfo.add("SystemName", $env:COMPUTERNAME)
+        $DeviceInfo.add("Domain", $pc.PartOfDomain)
+        $DeviceInfo.add("WorkGroup", $pc.Workgroup)
+        $DeviceInfo.add("CurrentUserName", $env:UserName)
+
+        $PageFileStats = [PSCustomObject]@{
+            Computer              = $computer
+            FilePath              = $pf.Description
+            AutoManagedPageFile   = $pc.AutomaticManagedPagefile
+            "TotalSize(in MB)"    = $pf.AllocatedBaseSize
+            "CurrentUsage(in MB)" = $pf.CurrentUsage
+            "PeakUsage(in MB)"    = $pf.PeakUsage
+            TempPageFileInUse     = $pf.TempPageFile
+        }
+
+        $DeviceInfo.add("PageFileSize", $PageFileStats.("TotalSize(in MB)"))
+        $DeviceInfo.add("PageFileCurrentSize", $PageFileStats.("CurrentUsage(in MB)"))
+        $DeviceInfo.add("PageFilePeakSize", $PageFileStats.("PeakUsage(in MB)"))
+
+        $out += New-Object PSObject -Property $DeviceInfo | Select-Object `
+            "SystemName", "SerialNumber", "OperatingSystem", `
+            "Version", "Architecture", "PageFileSize", "PageFileCurrentSize", "PageFilePeakSize", "PsVersion", "Domain", "WorkGroup", "CurrentUserName"
+
+        if ($Export -eq $true) {
+            Write-Verbose -Message "Config file exported in export folder"
+            $out | Export-CSV (Join-Path $ExportPath "Device_Infos.csv") -Delimiter ";" -NoTypeInformation
+        }
+        else {
+            return $out
+        }
+    }
+}
+
+function Install-HtChocolatey {
+    [CmdletBinding(
+        SupportsShouldProcess = $true
+    )]
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [array]$Apps
+    )
+    If (!(Test-Path -Path "$env:ProgramData\Chocolatey")) {
+        Set-ExecutionPolicy Bypass -Scope Process -Force; Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+    }
+
+    ForEach ($PackageName in $Apps) {
+        choco install $PackageName -y
+    }
+}
+
+function Install-HtBlob {
+    param (
+        [System.String]$ZipSourceFiles = "",
+        [system.string]$IntuneProgramDir = "$env:APPDATA\Intune",
+        [System.String]$FullEXEDir = "$IntuneProgramDir\Folder\setup.exe",
+        [System.String]$ZipLocation = "$IntuneProgramDir\Package.zip",
+        [System.String]$TempNetworkZip = "\\Server\Intune$\Package.zip",
+        [System.Boolean]$Lnk = $false
+    )
+    If ((Test-Path $TempNetworkZip) -eq $False) {
+        #Start download of the source files from Azure Blob to the network cache location
+        Start-BitsTransfer -Source $ZipSourceFiles -Destination $TempNetworkZip
+
+        #Check to see if the local cache directory is present
+        If ((Test-Path -Path $IntuneProgramDir) -eq $False) {
+            #Create the local cache directory
+            New-Item -ItemType Directory $IntuneProgramDir -Force -Confirm:$False
+        }
+
+        #Copy the binaries from the network cache to the local computer cache
+        Copy-Item $TempNetworkZip -Destination $IntuneProgramDir  -Force
+    
+        #Extract the install binaries
+        Expand-Archive -Path $ZipLocation -DestinationPath $IntuneProgramDir -Force
+
+        #Install the program
+        Start-Process "$FullEXEDir" -ArgumentList "ARGS"
+    }
+    Else {
+        #Check to see if the local cache directory is present
+        If ((Test-Path -Path $IntuneProgramDir) -eq $False) {
+            #Create the local cache directory
+            New-Item -ItemType Directory $IntuneProgramDir -Force -Confirm:$False
+        }
+
+        #Copy the installer binaries from the network cache location to the local computer cache
+        Copy-Item $TempNetworkZip -Destination $IntuneProgramDir  -Force
+    
+        #Extract the install binaries
+        Expand-Archive -Path $ZipLocation -DestinationPath $IntuneProgramDir -Force
+
+        #Install the program
+        Start-Process "$FullEXEDir" -ArgumentList "ARGS"
+    }
+
+    if ($Lnk -eq $true) {
+        $ShortcutFile = "$env:Public\Desktop\" + $OutputFile.name + ".lnk"
+        $WScriptShell = New-Object -ComObject WScript.Shell
+        $Shortcut = $WScriptShell.CreateShortcut($ShortcutFile)
+        $Shortcut.TargetPath = (Join-Path "PATH" ("\temp\" + $OutputFile))
+        $Shortcut.Save()
+        Write-Host "Shortcut created"
+    }
+}
