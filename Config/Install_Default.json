@@ -1,0 +1,9 @@
+﻿{
+    "BasePath": "C:\\HiteaNet\\HtShell",
+    "BaseFolders": [
+        "Export", "Config", "Cache", "PsModule"
+    ],
+    "PsModules": [
+        "PendingReboot", "PSWindowsUpdate"
+    ]
+}

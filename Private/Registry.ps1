@@ -3,9 +3,9 @@ function Set-HtRegKey {
         SupportsShouldProcess = $true
     )]
     param(
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
-        $BasePath,
+        $BasePath = "HKLM:\\SOFTWARE\\HiteaNet\\HtShell",
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         $Key,
@@ -17,14 +17,12 @@ function Set-HtRegKey {
         $Type
     )
 
-    if (!(Test-Path (Join-Path $BasePath "AllMyIT"))) {
-        New-Item -Path $BasePath -Name "AllMyIT"
-        # New-PSDrive -Name "AllMyCloud" -PSProvider "Registry" -Root "HKLM:\SOFTWARE\AllMyCloud"
+    if (!(Test-Path $BasePath)) {
+        New-Item -Path "HKLM:\SOFTWARE\" -Name "HiteaNet"
+        New-Item -Path "HKLM:\SOFTWARE\HiteaNet" -Name "HtShell"
     }
 
-    $BasePath = (Join-Path $BasePath "AllMyIT")
-
-    if (Get-ItemProperty -Path $BasePath -Name $Key) {
+    if (Get-ItemProperty -Path $BasePath -Name $Key -ErrorAction SilentlyContinue) {
         Remove-ItemProperty -Path $BasePath -Name $Key -Force
     }
     New-ItemProperty -Path $BasePath -Name $Key -Value $Value -PropertyType $Type

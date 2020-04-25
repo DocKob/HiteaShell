@@ -107,10 +107,10 @@ Function Get-HtDeviceInfos {
     param(
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
-        [bool]$Export = $false
+        [string]$Export = $null
     )
-    DynamicParam {
-        if ($Export -eq $true) {
+    <# DynamicParam {
+        if ($Export -ne $null) {
             $ageAttribute = New-Object System.Management.Automation.ParameterAttribute
             $ageAttribute.Mandatory = $true
             $ageAttribute.HelpMessage = "Provide a folder path to export CSV file: "
@@ -123,9 +123,9 @@ Function Get-HtDeviceInfos {
  
             $paramDictionary = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
             $paramDictionary.Add('ExportPath', $ageParam)
-            return $paramDictionary
+            return $paramDictionary 
         }
-    }
+    } #>
 
     Process {
         $os = Get-WmiObject -class win32_operatingsystem | Select-Object *
@@ -162,9 +162,9 @@ Function Get-HtDeviceInfos {
             "SystemName", "SerialNumber", "OperatingSystem", `
             "Version", "Architecture", "PageFileSize", "PageFileCurrentSize", "PageFilePeakSize", "PsVersion", "Domain", "WorkGroup", "CurrentUserName"
 
-        if ($Export -eq $true) {
+        if ($Export -ne $null) {
             Write-Verbose -Message "Config file exported in export folder"
-            $out | Export-CSV (Join-Path $ExportPath "Device_Infos.csv") -Delimiter ";" -NoTypeInformation
+            $out | Export-CSV -Path (Join-Path $Export "Device_Infos.csv") -Delimiter ";" -NoTypeInformation
         }
         else {
             return $out
