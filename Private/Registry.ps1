@@ -5,7 +5,7 @@ function Set-HtRegKey {
     param(
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
-        $BasePath = "HKLM:\\SOFTWARE\\HiteaNet\\HtShell",
+        $BasePath = "HKLM:\SOFTWARE\HiteaNet\HtShell",
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         $Key,
@@ -34,9 +34,9 @@ function Get-HtRegKey {
         SupportsShouldProcess = $true
     )]
     param(
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
-        $BasePath,
+        $BasePath = "HKLM:\SOFTWARE\HiteaNet\HtShell",
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         $Key
@@ -53,8 +53,9 @@ function Get-HtRegObj {
         SupportsShouldProcess = $true
     )]
     Param(
-        [Parameter(Mandatory = $true)]
-        [string]$BasePath
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        $BasePath = "HKLM:\SOFTWARE\HiteaNet\HtShell"
     )
     $HtRegObj = [PSCustomObject]@{ }
     Push-Location
@@ -62,7 +63,7 @@ function Get-HtRegObj {
     Get-Item . |
     Select-Object -ExpandProperty property |
     ForEach-Object {
-        $HtRegObj | Add-Member -MemberType NoteProperty -Name $_ -Value (Get-ItemProperty -Path . -Name $_).$_
+        $HtRegObj | Add-Member $_ (Get-ItemProperty -Path . -Name $_).$_
     }
     Pop-Location
     Return $HtRegObj

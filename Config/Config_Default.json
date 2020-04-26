@@ -1,5 +1,5 @@
 ﻿{
     "AvailableServices": [
-        "EXCH", "MSOL", "TEAMS"
+        "AllServices", "AzureAD", "ComplianceCenter", "ExchangeOnline", "ExchangeOnlineProtection", "MSOnline", "SharepointOnline", "SkypeforBusinessOnline"
     ]
 }

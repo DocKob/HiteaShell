@@ -2,17 +2,29 @@ function Start-HtConnect {
     [CmdletBinding(
         SupportsShouldProcess = $true
     )]
-    param ()
+    param (        
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [string]$CustomConfig = "$($BaseFolder)/Config/Install_Default.json"
+    )
+
+    if (!(Test-HtPsRunAs)) {
+        Write-Host "You must launch HtShell as admin, exit..."
+        pause
+        exit
+    }
     
-    if (!(Test-Path "$($BaseFolder)/Config/Installed.txt") ) {
-        Install-HtBase
+    if (!(Test-Path ("HKLM:\SOFTWARE\HiteaNet\HtShell")) -or !(Test-Path "$($BaseFolder)/Config/Installed.txt")) {
+        Install-HtBase -InstallDefault $CustomConfig
     }
     else {
         Write-Host "Install folder is Already created !"
-        $Config = Import-HtConfiguration -ProfilePath "$($BaseFolder)/Config/Install_Default.json"
     }
 
-    $ConfigFolder = Join-Path $Config.BasePath "Config"
+    $HtConfig = Import-HtConfiguration -ProfilePath "$($BaseFolder)/Config/Config_Default.json"
+    $HtReg = Get-HtRegObj
+
+    $ConfigFolder = Join-Path $HtReg.("InstallPath") "Config"
     if (!(Test-Path (Join-Path $ConfigFolder "aes.key") -ErrorAction SilentlyContinue)) {
         $KeyPath = Set-HtCryptKey -Path $ConfigFolder
     }
@@ -20,16 +32,10 @@ function Start-HtConnect {
         $KeyPath = Join-Path $ConfigFolder "aes.key"
     }
 
-    $RunConfig = Import-HtConfiguration -ProfilePath "$($BaseFolder)/Config/Config_Default.json"
-
     $MenuTitle = " Start HtConnect"
     $WizardMenu = @"
 
-1: Enter MSOL Session
-
-2: Enter Exchange Session
-
-3: Enter Teams Session
+1: Connect to Microsoft 365
 
 C: Create new cred file
 
@@ -40,42 +46,32 @@ Q: Press Q to exist
 "@
 
     Do {
-        Switch (Invoke-HtMenu -menu $WizardMenu -title $MenuTitle) {
+        Switch (Invoke-HtMenu -menu $WizardMenu -title $MenuTitle -cls) {
             "1" {
                 $CommonName = Read-Host "Type a common name to connect "
                 $SessionCred = Get-HtCredential -KeyFile $KeyPath -CredFolder $ConfigFolder -CommonName $CommonName
-                Connect-HtMsol -Credential $SessionCred
-                return
-            }
-            "2" {
-                $CommonName = Read-Host "Type a common name to connect "
-                $ActivesSessions = Get-HtPsSession
-                if ([bool]($ActivesSessions.Name -match ("HT_EXCH_" + $CommonName))) {
-                    Write-Verbose "A session already exist !"
+                $Services = Read-Host "Choose services to connect. AzureAD, MSOnline and ExchangeOnline by default, all available: $($HtConfig.AvailableServices)"
+                if ($Services -ne $NULL) {
+                    Connect-HtMicrosoft365 -Service $Services -Credential $SessionCred
                 }
                 else {
-                    Write-Verbose "Create a new session !"
-                    $SessionCred = Get-HtCredential -KeyFile $KeyPath -CredFolder $ConfigFolder -CommonName $CommonName
-                    Connect-HtExchange -Credential $SessionCred -SessionName $CommonName
+                    Connect-HtMicrosoft365 -Credential $SessionCred
                 }
-                return
-            }
-            "3" {
-                $CommonName = Read-Host "Type a common name to connect "
-                $SessionCred = Get-HtCredential -KeyFile $KeyPath -CredFolder $ConfigFolder -CommonName $CommonName
-                Connect-HtTeams -Credential $SessionCred
+                pause
                 return
             }
             "C" {
                 Set-HtCredential -KeyFile $KeyPath -CredFolder $ConfigFolder
+                pause
             }
             "T" {
                 Remove-HtTemp
+                pause
             }
             "Q" {
                 Read-Host "Closing..., press enter"
-                Get-PSSession | Remove-PSSession
-                Clear-Host
+                Disconnect-HtMicrosoft365
+                pause
                 Return
             }
             Default {

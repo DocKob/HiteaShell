@@ -39,9 +39,9 @@ function Install-HtBase {
         SupportsShouldProcess = $true
     )]
     param (        
-        [Parameter(Mandatory = $false)]
+        [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        $InstallDefault = "$($BaseFolder)/Config/Install_Default.json"
+        $InstallDefault
     )
 
     if (Test-Path "$($BaseFolder)/Config/Installed.txt") {
@@ -55,6 +55,7 @@ function Install-HtBase {
     Install-HtM365Modules
     Get-HtDeviceInfos -Export (Join-Path $InstallConfig.BasePath "Export")
 
+    Set-HtRegKey -Key "InstallPath" -Value $InstallConfig.BasePath -Type "String"
     Set-HtRegKey -Key "InstallDate" -Value (Get-Date) -Type "String"
     Get-Date | Out-File -Encoding UTF8 -FilePath "$($BaseFolder)/Config/Installed.txt"
 }
