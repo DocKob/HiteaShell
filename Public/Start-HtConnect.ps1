@@ -51,12 +51,7 @@ Q: Press Q to exist
                 $CommonName = Read-Host "Type a common name to connect "
                 $SessionCred = Get-HtCredential -KeyFile $KeyPath -CredFolder $ConfigFolder -CommonName $CommonName
                 $Services = Read-Host "Choose services to connect. AzureAD, MSOnline and ExchangeOnline by default, all available: $($HtConfig.AvailableServices)"
-                if ($Services -ne $NULL) {
-                    Connect-HtMicrosoft365 -Service $Services -Credential $SessionCred
-                }
-                else {
-                    Connect-HtMicrosoft365 -Credential $SessionCred
-                }
+                Connect-HtMicrosoft365 -Credential $SessionCred
                 pause
                 return
             }

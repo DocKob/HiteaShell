@@ -1,49 +1,18 @@
-function GetHtmlReport {
-    param ()
-
-    #Company logo that will be displayed on the left, can be URL or UNC
-    $CompanyLogo = "http://thelazyadministrator.com/wp-content/uploads/2018/06/logo-2-e1529684959389.png"
-
-    #Logo that will be on the right side, UNC or URL
-    $RightLogo = "http://thelazyadministrator.com/wp-content/uploads/2018/06/amd.png"
-
-    #Location the report will be saved to
-    $ReportSavePath = "C:\Automation\"
-
-    #Variable to filter licenses out, in current state will only get licenses with a count less than 9,000 this will help filter free/trial licenses
-    $LicenseFilter = "9000"
-
-    #Set to $True if your global admin requires 2FA
-    $2FA = $True
-
-    ########################################
-
-
-    If ($2FA -eq $False) {
-        $credential = Get-Credential -Message "Please enter your Office 365 credentials"
-        Import-Module AzureAD
-        Connect-AzureAD -Credential $credential
-        $exchangeSession = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri "https://outlook.office365.com/powershell-liveid/"  -Authentication "Basic" -AllowRedirection -Credential $credential
-        Import-PSSession $exchangeSession -AllowClobber
-    }
-    Else {
-        $Modules = dir $Env:LOCALAPPDATA\Apps\2.0\*\CreateExoPSSession.ps1 -Recurse | Select-Object -ExpandProperty Target -First 1
-        foreach ($Module in $Modules) {
-            Import-Module "$Module"
-        }
-        Write-Host "Credential prompt to connect to Azure Graph" -ForegroundColor Yellow
-        #Connect to Azure Graph w/2FA
-        Connect-AzureAD
-
-        Write-Host "Credential prompt to connect to Azure" -ForegroundColor Yellow
-        #Connect to Azure w/ 2FA
-        Connect-MSOLService
-
-        Write-Host "Credential prompt to connect to Exchange Online" -ForegroundColor Yellow
-        #Connect to Exchange Online w/ 2FA
-        Connect-EXOPSSession
-    }
-
+function Get-HtTenantReport {
+    param (
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        $CommonName,
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        $HtReportName = "Office 365 Tenant Report",
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        $LicenseFilter = "9000",
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        $ReportSavePath = (Join-Path  (Get-HtRegKey -Key "InstallPath") "Export")
+    )
 
     $Table = New-Object 'System.Collections.Generic.List[System.Object]'
     $LicenseTable = New-Object 'System.Collections.Generic.List[System.Object]'
@@ -188,11 +157,11 @@ function GetHtmlReport {
         "FLOW_P2"                            = "Microsoft Flow Plan 2"
         "WIN_DEF_ATP"                        = "Windows Defender ATP"
     }
-    # Get all users right away. Instead of doing several lookups, we will use this object to look up all the information needed.
+
     $AllUsers = get-azureaduser -All:$true -ErrorAction SilentlyContinue
 
     Write-Host "Gathering Company Information..." -ForegroundColor Yellow
-    #Company Information
+
     $CompanyInfo = Get-AzureADTenantDetail -ErrorAction SilentlyContinue
 
     $CompanyName = $CompanyInfo.DisplayName
@@ -201,12 +170,9 @@ function GetHtmlReport {
     $LastDirSync = $CompanyInfo.CompanyLastDirSyncTime
 
 
-    If ($DirSync -eq $Null) {
+    If ($Null -eq $DirSync) {
         $LastDirSync = "Not Available"
         $DirSync = "Disabled"
-    }
-    If ($PasswordSync -eq $Null) {
-        $LastPasswordSync = "Not Available"
     }
 
     $obj = [PSCustomObject]@{
@@ -221,7 +187,6 @@ function GetHtmlReport {
     Write-Host "Gathering Admin Roles and Members..." -ForegroundColor Yellow
 
     Write-Host "Getting Tenant Global Admins" -ForegroundColor white
-    #Get Tenant Global Admins
     $role = Get-AzureADDirectoryRole | Where-Object { $_.DisplayName -match "Company Administrator" } -ErrorAction SilentlyContinue
     If ($null -ne $role) {
         $Admins = Get-AzureADDirectoryRoleMember -ObjectId $role.ObjectId -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -ne "CloudConsoleGrapApi" }
@@ -258,7 +223,7 @@ function GetHtmlReport {
 
 
     Write-Host "Getting Tenant Exchange Admins" -ForegroundColor white
-    #Get Tenant Exchange Admins
+
     $exchrole = Get-AzureADDirectoryRole | Where-Object { $_.DisplayName -match "Exchange Service Administrator" } -ErrorAction SilentlyContinue
     If ($Null -ne $exchrole) {
         $ExchAdmins = Get-AzureADDirectoryRoleMember -ObjectId $exchrole.ObjectId -ErrorAction SilentlyContinue
@@ -298,7 +263,7 @@ function GetHtmlReport {
     }
 
     Write-Host "Getting Tenant Privileged Admins" -ForegroundColor white
-    #Get Tenant Privileged Admins
+    
     $privadminrole = Get-AzureADDirectoryRole | Where-Object { $_.DisplayName -match "Privileged Role Administrator" } -ErrorAction SilentlyContinue
     If ($Null -ne $privadminrole) {
         $PrivAdmins = Get-AzureADDirectoryRoleMember -ObjectId $privadminrole.ObjectId -ErrorAction SilentlyContinue -ErrorVariable SilentlyContinue
@@ -339,7 +304,7 @@ function GetHtmlReport {
     }
 
     Write-Host "Getting Tenant User Account Admins" -ForegroundColor white
-    #Get Tenant User Account Admins
+
     $userrole = Get-AzureADDirectoryRole | Where-Object { $_.DisplayName -match "User Account Administrator" } -ErrorAction SilentlyContinue
     If ($Null -ne $userrole) {
         $userAdmins = Get-AzureADDirectoryRoleMember -ObjectId $userrole.ObjectId -ErrorAction SilentlyContinue
@@ -379,7 +344,7 @@ function GetHtmlReport {
     }
 
     Write-Host "Getting Helpdesk Admins" -ForegroundColor white
-    #Get Tenant Tech Account Exchange Admins
+
     $TechExchAdmins = Get-RoleGroupMember -Identity "Helpdesk Administrator" -ErrorAction SilentlyContinue
     Foreach ($TechExchAdmin in $TechExchAdmins) {
         $AccountInfo = Get-MsolUser -searchstring $TechExchAdmin.Name -ErrorAction SilentlyContinue
@@ -418,7 +383,7 @@ function GetHtmlReport {
     }
 
     Write-Host "Getting Tenant SharePoint Admins" -ForegroundColor white
-    #Get Tenant SharePoint Admins
+
     $sprole = Get-AzureADDirectoryRole | Where-Object { $_.DisplayName -match "SharePoint Service Administrator" } -ErrorAction SilentlyContinue
     If ($Null -ne $sprole) {
         $SPAdmins = Get-AzureADDirectoryRoleMember -ObjectId $sprole.ObjectId -ErrorAction SilentlyContinue
@@ -458,7 +423,7 @@ function GetHtmlReport {
     }
 
     Write-Host "Getting Tenant Skype Admins" -ForegroundColor white
-    #Get Tenant Skype Admins
+
     $skyperole = Get-AzureADDirectoryRole | Where-Object { $_.DisplayName -match "Lync Service Administrator" } -ErrorAction SilentlyContinue
     If ($Null -ne $skyperole) {
         $skypeAdmins = Get-AzureADDirectoryRoleMember -ObjectId $skyperole.ObjectId -ErrorAction SilentlyContinue
@@ -498,7 +463,7 @@ function GetHtmlReport {
     }
 
     Write-Host "Getting Tenant CRM Admins" -ForegroundColor white
-    #Get Tenant CRM Admins
+
     $crmrole = Get-AzureADDirectoryRole | Where-Object { $_.DisplayName -match "CRM Service Administrator" } -ErrorAction SilentlyContinue
     If ($Null -ne $crmrole) {
         $crmAdmins = Get-AzureADDirectoryRoleMember -ObjectId $crmrole.ObjectId -ErrorAction SilentlyContinue
@@ -538,7 +503,7 @@ function GetHtmlReport {
     }
 
     Write-Host "Getting Tenant Power BI Admins" -ForegroundColor white
-    #Get Tenant Power BI Admins
+
     $birole = Get-AzureADDirectoryRole | Where-Object { $_.DisplayName -match "Power BI Service Administrator" } -ErrorAction SilentlyContinue
     If ($null -ne $birole) {
         $biAdmins = Get-AzureADDirectoryRoleMember -ObjectId $birole.ObjectId -ErrorAction SilentlyContinue
@@ -579,7 +544,7 @@ function GetHtmlReport {
     }
 
     Write-Host "Getting Tenant Service Support Admins" -ForegroundColor white
-    #Get Tenant Service Support Admins
+
     $servicerole = Get-AzureADDirectoryRole | Where-Object { $_.DisplayName -match "Service Support Administrator" } -ErrorAction SilentlyContinue
     If ($Null -ne $servicerole) {
         $serviceAdmins = Get-AzureADDirectoryRoleMember -ObjectId $servicerole.ObjectId -ErrorAction SilentlyContinue
@@ -619,7 +584,7 @@ function GetHtmlReport {
     }
 
     Write-Host "Getting Tenant Billing Admins" -ForegroundColor white
-    #Get Tenant Billing Admins
+
     $billingrole = Get-AzureADDirectoryRole | Where-Object { $_.DisplayName -match "Billing Administrator" } -ErrorAction SilentlyContinue
     If ($Null -ne $billingrole) {
         $billingAdmins = Get-AzureADDirectoryRoleMember -ObjectId $billingrole.ObjectId -ErrorAction SilentlyContinue
@@ -659,7 +624,7 @@ function GetHtmlReport {
     }
 
     Write-Host "Getting Users with Strong Password Disabled..." -ForegroundColor Yellow
-    #Users with Strong Password Disabled
+
     $LooseUsers = $AllUsers | Where-Object { $_.PasswordPolicies -eq "DisableStrongPassword" }
     Foreach ($LooseUser in $LooseUsers) {
         $NameLoose = $LooseUser.DisplayName
@@ -689,7 +654,7 @@ function GetHtmlReport {
     }
 
     Write-Host "Getting Tenant Domains..." -ForegroundColor Yellow
-    #Tenant Domain
+
     $Domains = Get-AzureAdDomain
     foreach ($Domain in $Domains) {
         $DomainName = $Domain.Name
@@ -706,7 +671,7 @@ function GetHtmlReport {
     }
 
     Write-Host "Getting Groups..." -ForegroundColor Yellow
-    #Get groups and sort in alphabetical order
+
     $Groups = Get-AzureAdGroup -All $True | Sort-Object DisplayName
     $365GroupCount = ($Groups | Where-Object { $_.MailEnabled -eq $true -and $_.DirSyncEnabled -eq $null -and $_.SecurityEnabled -eq $false }).Count
     $obj1 = [PSCustomObject]@{
@@ -1183,7 +1148,7 @@ function GetHtmlReport {
     $PieObjectULicense.DataDefinition.DataValueColumnName = 'Count'
 
     $rpt = New-Object 'System.Collections.Generic.List[System.Object]'
-    $rpt += get-htmlopenpage -TitleText 'Office 365 Tenant Report' -LeftLogoString $CompanyLogo 
+    $rpt += get-htmlopenpage -TitleText $HtReportName
 
     $rpt += Get-HTMLTabHeader -TabNames $tabarray 
     $rpt += get-htmltabcontentopen -TabName $tabarray[0] -TabHeading ("Report: " + (Get-Date -Format MM-dd-yyyy))
@@ -1332,7 +1297,7 @@ function GetHtmlReport {
     $Day = (Get-Date).Day
     $Month = (Get-Date).Month
     $Year = (Get-Date).Year
-    $ReportName = ( "$Month" + "-" + "$Day" + "-" + "$Year" + "-" + "O365 Tenant Report")
+    $ReportName = ( "$Month" + "-" + "$Day" + "-" + "$Year" + "-" + $CommonName + "Tenant_Report")
     Save-HTMLReport -ReportContent $rpt -ShowReport -ReportName $ReportName -ReportPath $ReportSavePath
-    
+
 }

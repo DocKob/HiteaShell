@@ -3,12 +3,17 @@ function Get-HtComputerReport {
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
         $SearchBase = "CN=Computers,DC=Domain,DC=local",
-        [Parameter(Mandatory = $false)]
+        [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        $Export = "Filename.csv"
+        $CommonName
     )
 
     $AdComputers = Get-ADComputer -Filter * -Property * -SearchBase $SearchBase | Select-Object Name, OperatingSystem, OperatingSystemVersion, ipv4Address
 
-    $AdComputers | Export-CSV (Join-Path  (Get-HtRegKey -Key "InstallPath") $Export) -NoTypeInformation -Encoding UTF8 -Delimiter ";"
+    $Day = (Get-Date).Day
+    $Month = (Get-Date).Month
+    $Year = (Get-Date).Year
+    $ExportPath = (Join-Path  (Get-HtRegKey -Key "InstallPath") "Export")
+    $ReportName = ( "$Month" + "-" + "$Day" + "-" + "$Year" + "-" + $CommonName + "-Computer_Report")
+    $AdComputers | Export-CSV (Join-Path $ExportPath $ReportName) -NoTypeInformation -Encoding UTF8 -Delimiter ";"
 }

@@ -1,21 +1,17 @@
-function Import-AadUsers.ps1 {
-    param ()
+function Import-HtAadUsersFromCsv {
+    param (     
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        $CsvPath,
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        $ChangePwd = $true
+    )
 
-    $importFile = "Users.csv"
+    $users = import-csv $CsvPath | Select-Object *
 
-    $write = "Enter the admin user name and password to Microsoft Online"
-    Write-Host $write -foreground "yellow"
-    Write-Host ""
-
-    $cred = Get-Credential
-    Write-Host ""
-
-    $users = import-csv $importFile | select *
     foreach ($user in $users) {
-        $location = $user.'Mailbox Location'
-        $size = $user.'Mailbox Size'
         $emailAddress = $user.'Email Address'
-        $password = $user.'Password'
         $firstName = $user.'First Name'
         $lastName = $user.'Last Name'
         $displayName = $user.'Display Name'
@@ -34,9 +30,8 @@ function Import-AadUsers.ps1 {
         $write = "Importing account " + $emailAddress + " ..."
         Write-Host $write
 
-        $result = Add-MSOnlineUser -Credential $cred -Identity $emailAddress -DisplayName $displayName -FirstName $firstName -LastName $lastName -JobTitle $title -Department $department -OfficeNumber $officeNumber -OfficePhone $officePhone -MobilePhone $mobile -FaxNumber $fax -StreetAddress $address -City $city -StateOrProvince $state -ZipOrPostalCode $postalCode -CountryOrRegion $country
+        Add-MSOnlineUser -Credential $cred -Identity $emailAddress -DisplayName $displayName -FirstName $firstName -LastName $lastName -JobTitle $title -Department $department -OfficeNumber $officeNumber -OfficePhone $officePhone -MobilePhone $mobile -FaxNumber $fax -StreetAddress $address -City $city -StateOrProvince $state -ZipOrPostalCode $postalCode -CountryOrRegion $country
 
-        Write-Host ""
     }
     
 }

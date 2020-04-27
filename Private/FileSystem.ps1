@@ -63,3 +63,42 @@ function Set-HtCacheFolder {
 
     New-SmbShare -Name $ShareName -Path $Path -FullAccess Everyone
 }
+
+function Compare-HtCsv {
+    param (
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        $CsvPath = (Join-Path  (Get-HtRegKey -Key "InstallPath") "Export"),
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        $Csv1,
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        $Csv2,
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        $Property
+    )
+
+    $File1 = Import-Csv -Path (Join-Path $CsvPath $Csv1)
+    $File2 = Import-Csv -Path (Join-Path $CsvPath $Csv2)
+
+    $Results = Compare-Object  $File1 $File2 -Property $Property -IncludeEqual
+ 
+    $Array = @()       
+    Foreach ($R in $Results) {
+        If ( $R.sideindicator -eq "==" ) {
+            $Object = [pscustomobject][ordered] @{
+ 
+                Username            = $R.$($Property)
+                "Compare indicator" = $R.sideindicator
+ 
+            }
+            $Array += $Object
+        }
+    }
+ 
+    # ($Array | sort-object username | Select-Object * -Unique).count
+    return $Array
+    
+}

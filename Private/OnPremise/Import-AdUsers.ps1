@@ -1,21 +1,32 @@
-function Import-AdUsers {
-    param ()
+function Import-HtAdUsersFromCsv {
+    param (     
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        $AdDomain, 
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        $CsvPath,
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        $ChangePwd = $true, 
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        $NotExpirePwd = $false,
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        $LockPwd = $false
+    )
     
-    # Import active directory module for running AD cmdlets
     Import-Module activedirectory
   
-    #Store the data from ADUsers.csv in the $ADUsers variable
-    $ADUsers = Import-csv .\bulk_users1.csv -Delimiter ";"
+    $ADUsers = Import-csv $CsvPath -Delimiter ";"
 
-    #Loop through each row containing user details in the CSV file 
-    foreach ($User in $ADUsers) {
-        #Read user data from each field in each row and assign the data to a variable as below
-		
+    foreach ($User in $ADUsers) {	
         $Username = $User.username
         $Password = $User.password
         $Firstname = $User.firstname
         $Lastname = $User.lastname
-        $OU = $User.ou #This field refers to the OU the user account is to be created in
+        $OU = $User.ou
         $email = $User.email
         $streetaddress = $User.streetaddress
         $city = $User.city
@@ -27,19 +38,13 @@ function Import-AdUsers {
         $Password = $User.Password
 
 
-        #Check to see if the user already exists in AD
         if (Get-ADUser -F { SamAccountName -eq $Username }) {
-            #If user does exist, give a warning
             Write-Warning "A user account with username $Username already exist in Active Directory."
         }
         else {
-            #User does not exist then proceed to create the new user account
-        
-            # -CannotChangePassword $True
-            #Account will be created in the OU provided by the $OU variable read from the CSV file
             New-ADUser `
                 -SamAccountName $Username `
-                -UserPrincipalName "$Username@domain.local" `
+                -UserPrincipalName "$Username@$AdDomain" `
                 -Name "$Firstname $Lastname" `
                 -GivenName $Firstname `
                 -Surname $Lastname `
@@ -54,10 +59,9 @@ function Import-AdUsers {
                 -EmailAddress $email `
                 -Title $jobtitle `
                 -Department $department `
-                -AccountPassword (convertto-securestring $Password -AsPlainText -Force) -ChangePasswordAtLogon $False `
-                -PasswordNeverExpires $False `
-                -CannotChangePassword $False
-            
+                -AccountPassword (convertto-securestring $Password -AsPlainText -Force) -ChangePasswordAtLogon $ChangePwd `
+                -PasswordNeverExpires $NotExpirePwd `
+                -CannotChangePassword $LockPwd
         }
     }
 }
