@@ -94,31 +94,31 @@ function Connect-HtMicrosoft365 {
                 switch ($s) {
 
                     'AzureAD' {
-                        Write-Verbose -Message 'Conncting to AzureAD.' -Verbose
+                        Write-Verbose -Message 'Connecting to AzureAD.' -Verbose
                         $Credential | Connect-AzureADOnline
                     }
                     'MSOnline' {
-                        Write-Verbose -Message 'Conncting to MSolService.' -Verbose
+                        Write-Verbose -Message 'Connecting to MSolService.' -Verbose
                         $Credential | Connect-MsolServiceOnline
                     }
                     'ComplianceCenter' {
-                        Write-Verbose -Message 'Conncting to Compliance Center.' -Verbose
+                        Write-Verbose -Message 'Connecting to Compliance Center.' -Verbose
                         $Credential | Connect-CCOnline
                     }
                     'ExchangeOnline' {
-                        Write-Verbose -Message 'Conncting to Exchange Online.' -Verbose
+                        Write-Verbose -Message 'Connecting to Exchange Online.' -Verbose
                         $Credential | Connect-ExchangeOnline
                     }
                     'ExchangeOnlineProtection' {
-                        Write-Verbose -Message 'Conncting to Exchange Online Protection.' -Verbose
+                        Write-Verbose -Message 'Connecting to Exchange Online Protection.' -Verbose
                         $Credential | Connect-ExchangeOnlineProt
                     }
                     'SharepointOnline' {
-                        Write-Verbose -Message 'Conncting to Sharepoint Online.' -Verbose
+                        Write-Verbose -Message 'Connecting to Sharepoint Online.' -Verbose
                         $Credential | Connect-SPOnline -SharepointDomain $PSBoundParameters['SharepointDomain']
                     }
                     'SkypeforBusinessOnline' {
-                        Write-Verbose -Message 'Conncting to Skype for Business Online.' -Verbose
+                        Write-Verbose -Message 'Connecting to Skype for Business Online.' -Verbose
                         $Credential | Connect-SfBOnline
                     }
                     Default {

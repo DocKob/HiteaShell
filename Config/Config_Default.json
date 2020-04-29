@@ -1,5 +1,8 @@
 ﻿{
-    "AvailableServices": [
+    "M365AvailableServices": [
         "AllServices", "AzureAD", "ComplianceCenter", "ExchangeOnline", "ExchangeOnlineProtection", "MSOnline", "SharepointOnline", "SkypeforBusinessOnline"
+    ],
+    "OnPremAvailableServices": [
+        "AllServices", "PsSession", "Rdp"
     ]
 }

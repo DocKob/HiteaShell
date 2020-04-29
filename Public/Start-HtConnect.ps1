@@ -37,6 +37,8 @@ function Start-HtConnect {
 
 1: Connect to Microsoft 365
 
+2: Connect to OnPremise Session
+
 C: Create new cred file
 
 T: Remove Temp
@@ -50,8 +52,17 @@ Q: Press Q to exist
             "1" {
                 $CommonName = Read-Host "Type a common name to connect "
                 $SessionCred = Get-HtCredential -KeyFile $KeyPath -CredFolder $ConfigFolder -CommonName $CommonName
-                $Services = Read-Host "Choose services to connect. AzureAD, MSOnline and ExchangeOnline by default, all available: $($HtConfig.AvailableServices)"
+                $M365Services = Read-Host "Choose services to connect. AzureAD, MSOnline and ExchangeOnline by default, all available: $($HtConfig.M365AvailableServices)"
                 Connect-HtMicrosoft365 -Credential $SessionCred
+                pause
+                return
+            }
+            "2" {
+                $CommonName = Read-Host "Type a common name to connect "
+                $ComputerName = Read-Host "Type a computer name to connect "
+                $SessionCred = Get-HtCredential -KeyFile $KeyPath -CredFolder $ConfigFolder -CommonName $CommonName
+                $OnPremServices = Read-Host "Choose services to connect. PsSession by default, all available: $($HtConfig.OnPremAvailableServices)"
+                Connect-HtOnPremise -Credential $SessionCred -ComputerName $ComputerName
                 pause
                 return
             }
@@ -66,6 +77,7 @@ Q: Press Q to exist
             "Q" {
                 Read-Host "Closing..., press enter"
                 Disconnect-HtMicrosoft365
+                Disconnect-HtOnPremise
                 pause
                 Return
             }
