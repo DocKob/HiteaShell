@@ -71,35 +71,6 @@ function Test-HtLocalGroupMember {
     
 }
 
-function Install-HtFeatures {
-    [CmdletBinding(
-        SupportsShouldProcess = $true
-    )]
-    param(
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [array]$Features
-    )
-
-    if (! (Test-HtPsCommand -Command "Install-WindowsFeature")) {
-        Write-Verbose -Message "Device is not a server ! Exit"
-    }
-    else {
-        $InstalledFeatures = Get-WindowsFeature | Where-Object InstallState -eq "Installed"
-
-        foreach ($Feature in $Features) {
-    
-            if (!($InstalledFeatures.Name -match $Feature)) {
-                Write-Host "Installing $Feature"
-                Install-WindowsFeature $Feature
-            }
-            else {
-                Write-Host "Feature $Feature is already installed"
-            }
-        } 
-    }
-}
-
 Function Get-HtDeviceInfos {
     [CmdletBinding(
         SupportsShouldProcess = $true
@@ -169,24 +140,6 @@ Function Get-HtDeviceInfos {
         else {
             return $out
         }
-    }
-}
-
-function Install-HtChocolatey {
-    [CmdletBinding(
-        SupportsShouldProcess = $true
-    )]
-    param(
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [array]$Apps
-    )
-    If (!(Test-Path -Path "$env:ProgramData\Chocolatey")) {
-        Set-ExecutionPolicy Bypass -Scope Process -Force; Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
-    }
-
-    ForEach ($PackageName in $Apps) {
-        choco install $PackageName -y
     }
 }
 

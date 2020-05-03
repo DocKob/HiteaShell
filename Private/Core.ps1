@@ -34,6 +34,30 @@ function Save-HtConfiguration() {
     Write-Verbose -Message "Config file saved !"
 }
 
+function Confirm-HtConfigurationItem {
+    [CmdletBinding(
+        SupportsShouldProcess = $true
+    )]
+    Param(
+        [Parameter(Mandatory = $True)]
+        [ValidateNotNullOrEmpty()]
+        $ConfigurationItem,
+        [Parameter(Mandatory = $True)]
+        $Item
+    )
+
+    if ([string]::IsNullOrEmpty($Item)) {
+        return $null
+    }
+    elseif ([bool]($ConfigurationItem -match $Item)) {
+        return $true
+    }
+    else {
+        return $false
+    }
+    
+}
+
 function Install-HtBase {
     [CmdletBinding(
         SupportsShouldProcess = $true
@@ -97,4 +121,65 @@ Function Invoke-HtMenu {
  
     Read-Host -Prompt $menuprompt
  
+}
+
+function Get-HtValidateString {
+    
+    [OutputType([bool], [PSCredential])]
+    [CmdletBinding()]
+    param (
+        [uint16]$MaxTry = 3,
+        [Parameter(Mandatory = $true)]
+        [ValidateSet('Email', 'CommonName')]
+        [ValidateNotNullOrEmpty()]
+        $Type
+    )
+
+    switch ($Type) {
+        "Email" { 
+            $Regex = "[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?"
+        }
+        "CommonName" { 
+            $Regex = "^[a-z]{2,}\d*$"
+        }
+        "HostName" {
+            $Regex = "^[A-Z-0-9]{1,15}$"
+        }
+        "Service" {
+            $Regex = "^[a-z]{2,}\d*$"
+        }
+        Default { return $false }
+    }
+    try {
+
+        $Counter = 1
+        do {
+        
+            $UserPrincipalName = Read-Host "Enter $($Type): "
+            
+            if ($UserPrincipalName -match $Regex) {
+                
+                Write-Verbose -Message "$($Type) match the regex."
+                $UserPrincipalName
+                break
+            }
+            if ($Counter -lt $MaxTry) {
+        
+                Write-Warning -Message "$($Type) does not match a valid input, please provide a corrent $($Type)."
+                Write-Warning -Message ("Try {0} of {1}" -f ($Counter + 1), $MaxTry)
+            }
+            elseif ($Counter -ge $MaxTry) {
+                
+                Write-Error -Message "$($Type) does not match the regex" -Exception "System.Management.Automation.SetValueException" -Category InvalidResult -ErrorAction Stop
+                break
+            }
+
+            $Counter++
+        }
+        while ($UserPrincipalName -notmatch $Regex)
+    }
+    catch {
+        Write-Verbose -Message ('Problem with Credentials - {0}' -f $_.Exception.Message)
+        return $false
+    }
 }

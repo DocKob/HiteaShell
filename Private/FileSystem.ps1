@@ -64,6 +64,58 @@ function Set-HtCacheFolder {
     New-SmbShare -Name $ShareName -Path $Path -FullAccess Everyone
 }
 
+function Set-HtShortcut {
+    param (
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        $ShortcutPath = "$env:Public\Desktop\",
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        $ShortcutTarget,
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        $ShortcutName
+    )
+
+    $Filename = $ShortcutName + ".lnk"
+    $WScriptShell = New-Object -ComObject WScript.Shell
+    $Shortcut = $WScriptShell.CreateShortcut((Join-Path $ShortcutPath $Filename))
+    $Shortcut.TargetPath = $ShortcutTarget
+    $Shortcut.Save()
+    Write-Host "Shortcut created"
+}
+
+function Set-HtSymLink {
+    param (
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        $SymlinkPath = "C:\",
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        $SymlinkTarget,
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        $SymlinkName
+    )
+	
+    New-Item -Path $SymlinkPath -Name $SymlinkName -ItemType SymbolicLink -Value $SymlinkTarget
+    
+}
+
+function Set-HtPsDrive {
+    param (
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        $PsDriveTarget,
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        $PsDriveName
+    )
+
+    New-PSDrive -Name $PsDriveName -PSProvider FileSystem -Root $PsDriveTarget
+    
+}
+
 function Compare-HtCsv {
     param (
         [Parameter(Mandatory = $false)]

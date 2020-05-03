@@ -15,8 +15,7 @@ function Connect-HtComputerPsSession {
     )
 
     try {
-
-
+        Enter-PSSession -ComputerName $ComputerName -Credential $Credential
     }
     catch {
 

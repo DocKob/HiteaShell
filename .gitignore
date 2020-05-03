@@ -1,2 +1,5 @@
-#Ignore MKDocs build
+#HiteaShell Installed file
 /Config/Installed.txt
+
+#Ignore MKDocs build
+/site/

@@ -51,18 +51,35 @@ Q: Press Q to exist
         Switch (Invoke-HtMenu -menu $WizardMenu -title $MenuTitle -cls) {
             "1" {
                 $CommonName = Read-Host "Type a common name to connect "
+                $M365Services = Read-Host "TYpe y to connect AzureAD, MSOnline and ExchangeOnline by default, all available: $($HtConfig.M365AvailableServices)"
                 $SessionCred = Get-HtCredential -KeyFile $KeyPath -CredFolder $ConfigFolder -CommonName $CommonName
-                $M365Services = Read-Host "Choose services to connect. AzureAD, MSOnline and ExchangeOnline by default, all available: $($HtConfig.M365AvailableServices)"
-                Connect-HtMicrosoft365 -Credential $SessionCred
+                $ConfigMatch = Confirm-HtConfigurationItem -ConfigurationItem $HtConfig.M365AvailableServices -Item $M365Services
+                if (($SessionCred -eq $false) -or ($ConfigMatch -eq $false)) {
+                    Write-Warning "Credential: $($SessionCred) - Service: $($ConfigMatch)"
+                }
+                elseif (($SessionCred -ne $false) -and ($ConfigMatch -eq $true)) {
+                    Connect-HtMicrosoft365 -Service $M365Services -Credential $SessionCred
+                }
+                elseif (($SessionCred -ne $false) -and ([string]::IsNullOrEmpty($ConfigMatch))) {
+                    Connect-HtMicrosoft365 -Credential $SessionCred
+                }
                 pause
                 return
             }
             "2" {
-                $CommonName = Read-Host "Type a common name to connect "
                 $ComputerName = Read-Host "Type a computer name to connect "
-                $SessionCred = Get-HtCredential -KeyFile $KeyPath -CredFolder $ConfigFolder -CommonName $CommonName
-                $OnPremServices = Read-Host "Choose services to connect. PsSession by default, all available: $($HtConfig.OnPremAvailableServices)"
-                Connect-HtOnPremise -Credential $SessionCred -ComputerName $ComputerName
+                $OnPremServices = Read-Host "Type y to connect PsSession by default, all available: $($HtConfig.OnPremAvailableServices)"
+                $SessionCred = Get-HtCredential -KeyFile $KeyPath -CredFolder $ConfigFolder -CommonName $ComputerName
+                $ConfigMatch = Confirm-HtConfigurationItem -ConfigurationItem $HtConfig.OnPremAvailableServices -Item $OnPremServices
+                if (($SessionCred -eq $false) -or ($ConfigMatch -eq $false)) {
+                    Write-Warning "Credential: $($SessionCred) - Service: $($ConfigMatch)"
+                }
+                elseif (($SessionCred -ne $false) -and ($ConfigMatch -eq $true)) {
+                    Connect-HtOnPremise -Service $OnPremServices -Credential $SessionCred -ComputerName $ComputerName
+                }
+                elseif (($SessionCred -ne $false) -and ([string]::IsNullOrEmpty($ConfigMatch))) {
+                    Connect-HtOnPremise -Credential $SessionCred -ComputerName $ComputerName
+                }
                 pause
                 return
             }

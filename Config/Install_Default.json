@@ -4,6 +4,6 @@
         "Export", "Config", "Cache", "PsModule"
     ],
     "PsModules": [
-        "PendingReboot", "PSWindowsUpdate"
+        "PendingReboot", "PSWindowsUpdate", "ReportHTML"
     ]
 }

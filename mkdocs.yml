@@ -1,0 +1,23 @@
+site_name: HiteaShell
+
+theme:
+  name: 'material'
+  feature:
+    tabs: true
+  palette:
+    primary: 'amber'
+    accent: 'deep orange'
+
+markdown_extensions:
+  - codehilite
+  - admonition
+  - meta
+
+repo_name: DocKob/HiteaShell
+
+repo_url: https://github.com/DocKob/HiteaShell
+
+extra:
+  social:
+    - type: github
+      link: https://github.com/DocKob/HiteaShell
