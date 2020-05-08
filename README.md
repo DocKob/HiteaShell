@@ -1,6 +1,6 @@
 # Getting started
 
-HiteaShell est un module powershell conçu pour faciliter la conexion et l'administration des services Microsoft.
+HiteaShell est un module powershell conçu pour faciliter la connexion et l'administration des services Microsoft.
 
 Cloud : AzureAD, ComplianceCenter, ExchangeOnline, ExchangeOnlineProtection, MSOnline, SharepointOnline, SkypeforBusinessOnline
 
