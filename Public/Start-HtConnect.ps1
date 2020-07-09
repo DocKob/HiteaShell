@@ -13,9 +13,11 @@ function Start-HtConnect {
         pause
         exit
     }
+
+    $InstallConfig = Import-HtConfiguration -ProfilePath $CustomConfig
     
-    if (!(Test-Path ("HKLM:\SOFTWARE\HiteaNet\HtShell")) -or !(Test-Path "$($BaseFolder)/Config/Installed.txt")) {
-        Install-HtBase -InstallDefault $CustomConfig
+    if (!(Test-Path ("HKLM:\SOFTWARE\HiteaNet\HtShell")) -or !(Test-Path "$($BaseFolder)/Config/Installed.txt") -or !(Test-Path $InstallConfig.BasePath)) {
+        Install-HtBase -InstallConfig $InstallConfig
     }
     else {
         Write-Host "Install folder is Already created !"

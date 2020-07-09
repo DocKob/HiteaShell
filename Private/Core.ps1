@@ -65,14 +65,12 @@ function Install-HtBase {
     param (        
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        $InstallDefault
+        $InstallConfig
     )
 
-    if (Test-Path "$($BaseFolder)/Config/Installed.txt") {
+    if ((Test-Path "$($BaseFolder)/Config/Installed.txt") -and (Test-Path $InstallConfig.BasePath) ) {
         return
     }
-
-    $InstallConfig = Import-HtConfiguration -ProfilePath $InstallDefault
 
     New-HtFolders -Folders $InstallConfig.BaseFolders -Path $InstallConfig.BasePath
     Install-HtModules -Modules $InstallConfig.PsModules -Path (Join-Path $InstallConfig.BasePath "PsModule")
